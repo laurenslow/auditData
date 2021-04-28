@@ -1,0 +1,69 @@
+---
+title: "tax_analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r message=FALSE, warning=FALSE}
+audits <- here::here("data/cleaned/auditsData_2019.04.03.csv") %>%
+    read_csv()
+race_county <- here::here("data/cleaned/race_eth_county.csv") %>%
+    read_csv()
+incomes <- here::here("data/cleaned/incomes.csv") %>%
+    read_csv()
+joined <- full_join(audits, race_county, by = "fips") %>%
+  full_join(., incomes, by = "fips") %>% 
+  select(fips, state.x, county, n_returns, estimated_exams, audit_rate, white, black, indian, asian, hawaiian, other, two, non_his, hispanic, median_income) 
+```
+
+```{r}
+joined <- joined %>%
+  mutate(non_white = black + indian + asian + hawaiian + other + two, 
+         pred_white = as.integer(ifelse(white >= non_white, 1, 0)))
+```
+
+
+```{r}
+fit = lm(audit_rate ~ pred_white + median_income, data = joined)
+summary(fit)
+```
+For predominantly non-white counties, $y = -.00002935x + 10.35$
+For predominantly white counties, $y = -.00002935x + 9.23$
+
+```{r}
+ggplot(data = joined, aes(x = county, y = audit_rate, color = pred_white)) +
+  geom_point() 
+```
+
+```{r}
+ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
+  geom_point() + 
+  geom_smooth(method = "lm")
+```
+
+
+```{r}
+equation1=function(x){coef(fit)[2]*x+coef(fit)[1]}
+equation2=function(x){coef(fit)[2]*x+coef(fit)[1]+coef(fit)[3]}
+
+ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
+  geom_point()+
+  stat_function(fun=equation1,geom="line",color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation2,geom="line",color=scales::hue_pal()(2)[2])
+```
+
+
+
+
+
+
+
+
+
+
+
