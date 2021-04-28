@@ -58,10 +58,9 @@ ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)
 ```
 
 
-something new
 
 
-
+new thing
 
 
 
