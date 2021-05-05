@@ -6,7 +6,7 @@ output: html_document
 ```{r setup, include=FALSE}
 library(here)
 library(tidyverse)
-library(ggplot2)
+library(ISLR)
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -32,8 +32,10 @@ joined <- joined %>%
 fit = lm(audit_rate ~ pred_white + median_income, data = joined)
 summary(fit)
 ```
-For predominantly non-white counties, $y = -.00002935x + 10.35$
-For predominantly white counties, $y = -.00002935x + 9.23$
+```{r}
+# For predominantly non-white counties $y = -.00002935x + 10.35$
+# For predominantly white counties, $y = -.00002935x + 9.23$
+```
 
 ```{r}
 ggplot(data = joined, aes(x = county, y = audit_rate, color = pred_white)) +
@@ -48,21 +50,33 @@ ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)
 
 
 ```{r}
-equation1=function(x){coef(fit)[2]*x+coef(fit)[1]}
-equation2=function(x){coef(fit)[2]*x+coef(fit)[1]+coef(fit)[3]}
-
 ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
-  geom_point()+
-  stat_function(fun=equation1,geom="line",color=scales::hue_pal()(2)[1])+
-  stat_function(fun=equation2,geom="line",color=scales::hue_pal()(2)[2])
+  geom_point() +
+  stat_function(fun = function(x) -.00002935*x + 10.35) +
+  stat_function(fun = function(x) -.00002935*x + 9.23)
 ```
 
+```{r}
+better_fit = lm(audit_rate ~ poly(median_income, 2, raw = TRUE) + pred_white, data = joined)
+summary(better_fit)
+```
 
+```{r}
+ggplot(joined, aes(median_income, audit_rate)) +
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE))
+```
 
+```{r}
+better_fit2 = lm(audit_rate ~ poly(pred_white, 3, raw = TRUE) + median_income, data = joined)
+summary(better_fit2)
+```
 
-new thing
-
-
+```{r}
+ggplot(joined, aes(median_income, audit_rate)) +
+  geom_point() +
+  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE))
+```
 
 
 
