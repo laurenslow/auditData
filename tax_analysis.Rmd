@@ -78,5 +78,39 @@ ggplot(joined, aes(median_income, audit_rate)) +
   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE))
 ```
 
+```{r}
+library(tigris)
+library(leaflet)
+library(stringr)
+
+
+cnty <- counties(state = FALSE, cb = TRUE, resolution = "20m")
+cnty <- cnty %>% 
+  unite(fips, c(STATEFP, COUNTYFP), sep = "", remove = FALSE) %>%
+  mutate(fips = str_remove(fips, "^0+"), 
+         fips = as.numeric(fips))
+
+joined_cnty <- full_join(cnty, joined, by = "fips")
+
+pal <- colorNumeric(
+  palette = "YlGnBu",
+  domain = joined_cnty$audit_rate
+)
+
+
+leaflet(joined_cnty) %>%
+  addTiles() %>%
+  addPolygons(fillColor = ~pal(audit_rate), 
+              color = "#b2aeae", # you need to use hex colors
+              fillOpacity = 0.7, 
+              weight = 1, 
+              smoothFactor = 0.2,
+              popup = ~ paste(county, state.x)) %>%
+  addLegend(pal = pal, 
+            values = joined_cnty$audit_rate, 
+            position = "topright", 
+            title = "Percent of Taxes Audited",
+            labFormat = labelFormat(suffix = "%")) 
+```
 
 
