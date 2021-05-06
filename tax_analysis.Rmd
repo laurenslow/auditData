@@ -111,6 +111,7 @@ leaflet(joined_cnty) %>%
             position = "topright", 
             title = "Percent of Taxes Audited",
             labFormat = labelFormat(suffix = "%")) 
+
 ```
 
 
