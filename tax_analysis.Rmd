@@ -9,7 +9,6 @@ library(tidyverse)
 library(ISLR)
 library(tigris)
 library(leaflet)
-library(stringr)
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -35,10 +34,12 @@ joined <- joined %>%
 fit = lm(audit_rate ~ pred_white + median_income, data = joined)
 summary(fit)
 ```
+
 ```{r}
 # For predominantly non-white counties $y = -.00002935x + 10.35$
 # For predominantly white counties, $y = -.00002935x + 9.23$
 ```
+
 
 ```{r}
 ggplot(data = joined, aes(x = county, y = audit_rate, color = pred_white)) +
@@ -80,6 +81,7 @@ ggplot(joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
   geom_point() +
   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE))
 ```
+
 ```{r}
 plot_all <- ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
   geom_point() + 
@@ -114,6 +116,18 @@ leaflet(joined_cnty) %>%
             position = "topright", 
             title = "Percent of Taxes Audited",
             labFormat = labelFormat(suffix = "%")) 
+
+
+equation1=function(x){coef(fit)[2]*x+coef(fit)[1]}
+equation2=function(x){coef(fit)[2]*x+coef(fit)[1]+coef(fit)[3]}
+
+ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
+  geom_point()+
+  stat_function(fun=equation1,geom="line",color=scales::hue_pal()(2)[1])+
+  stat_function(fun=equation2,geom="line",color=scales::hue_pal()(2)[2])
 ```
+
+
+
 
 
