@@ -18,8 +18,8 @@ ui <- fluidPage(
   # Sidebar with a slider input for number of bins
   sidebarLayout(
     sidebarPanel(
-      checkboxGroupInput(inputId = "scartter_plot",
-                         label = "Select madel type:",
+      checkboxGroupInput(inputId = "scatter_plot",
+                         label = "Select model type:",
                          choices = c("Linear" = "1",
                                      "Quadratic" = "2",
                                      "Higher level polynomial" = "3"),
@@ -27,7 +27,7 @@ ui <- fluidPage(
       
       selectInput("select", 
                   "State", 
-                  choices = unique(joined_cnty$state.x),  
+                  choices = sort(unique(joined_cnty$state.x)),  
                   selected = "Alabama"),
       
     ),
@@ -78,13 +78,17 @@ server <- function(input, output) {
         filter(state.x == input$select)
     })
     
-    states <- c("All states", levels(joined_cnty$state.x))
+    # states <- c("All states", levels(joined_cnty$state.x))
     
-    ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white)) +
-      geom_point() + 
-      geom_smooth(method = "lm", color = "#f9766e") +
-      stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
-      stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff") 
+    base_plot <- ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white)) +
+      geom_point() 
+
+      if(is.null(input$scatter_plot)) {out <- base_plot;}
+      if("1" %in% input$scatter_plot) {out <- base_plot + geom_smooth(method = "lm", color = "#f9766e");}
+      if("2" %in% input$scatter_plot) {out <- base_plot + stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");}
+      if("3" %in% input$scatter_plot) {out <- base_plot + stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");}
+      
+    out
     
     
     
