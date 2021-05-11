@@ -7,6 +7,9 @@ output: html_document
 library(here)
 library(tidyverse)
 library(ISLR)
+library(tigris)
+library(leaflet)
+library(stringr)
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -24,7 +27,7 @@ joined <- full_join(audits, race_county, by = "fips") %>%
 ```{r}
 joined <- joined %>%
   mutate(non_white = black + indian + asian + hawaiian + other + two, 
-         pred_white = as.integer(ifelse(white >= non_white, 1, 0)))
+         pred_white = as.logical(ifelse(white >= non_white, 1, 0)))
 ```
 
 
@@ -62,7 +65,7 @@ summary(better_fit)
 ```
 
 ```{r}
-ggplot(joined, aes(median_income, audit_rate)) +
+ggplot(joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
   geom_point() +
   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE))
 ```
@@ -73,17 +76,21 @@ summary(better_fit2)
 ```
 
 ```{r}
-ggplot(joined, aes(median_income, audit_rate)) +
+ggplot(joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
   geom_point() +
   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE))
 ```
+```{r}
+plot_all <- ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
+  geom_point() + 
+  geom_smooth(method = "lm", color = "#f9766e") +
+  stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
+  stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff") 
+
+plot_all
+```
 
 ```{r}
-library(tigris)
-library(leaflet)
-library(stringr)
-
-
 cnty <- counties(state = FALSE, cb = TRUE, resolution = "20m")
 cnty <- cnty %>% 
   unite(fips, c(STATEFP, COUNTYFP), sep = "", remove = FALSE) %>%
@@ -92,11 +99,7 @@ cnty <- cnty %>%
 
 joined_cnty <- full_join(cnty, joined, by = "fips")
 
-pal <- colorNumeric(
-  palette = "YlGnBu",
-  domain = joined_cnty$audit_rate
-)
-
+pal <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$audit_rate)
 
 leaflet(joined_cnty) %>%
   addTiles() %>%
@@ -111,7 +114,6 @@ leaflet(joined_cnty) %>%
             position = "topright", 
             title = "Percent of Taxes Audited",
             labFormat = labelFormat(suffix = "%")) 
-
 ```
 
 
