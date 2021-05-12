@@ -25,12 +25,18 @@ ui <- fluidPage(
                                      "Higher level polynomial" = "3"),
                          selected = NULL),
       
-      selectInput("select", 
-                  "State", 
-                  choices = sort(unique(joined_cnty$state.x)),  
-                  selected = "Alabama"),
-      
+      selectInput("select",
+                  "State",
+                  choices = sort(unique(joined_cnty$state.x)),
+                  selected = "All"),
+
     ),
+    
+    # selectInput("select",
+    #             "State",
+    #             choices = c("All"), append(sort(unique(joined_cnty$state.x))),
+    #             selected = "All"),
+    # ),
     
     # Show a plot of the generated distribution
     mainPanel(tabsetPanel(type = "tabs", 
@@ -83,12 +89,42 @@ server <- function(input, output) {
     base_plot <- ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white)) +
       geom_point() 
 
-      if(is.null(input$scatter_plot)) {out <- base_plot;}
-      if("1" %in% input$scatter_plot) {out <- base_plot + geom_smooth(method = "lm", color = "#f9766e");}
-      if("2" %in% input$scatter_plot) {out <- base_plot + stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");}
-      if("3" %in% input$scatter_plot) {out <- base_plot + stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");}
-      
-    out
+    
+    if(is.null(input$scatter_plot)) {out <- base_plot;
+    }
+    else if(identical(c("1"), input$scatter_plot)) {out <- base_plot + 
+      geom_smooth(method = "lm", color = "#f9766e");
+    }
+    else if(identical(c("2"), input$scatter_plot)) {out <- base_plot + 
+      stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");
+    }
+    else if(identical(c("3"), input$scatter_plot)) {out <- base_plot + 
+      stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
+    }
+    else if(identical(c("1", "2"), input$scatter_plot)) {out <- base_plot +
+            geom_smooth(method = "lm", color = "#f9766e") +
+            stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");
+    }
+    else if(identical(c("1", "3"), input$scatter_plot)) {out <- base_plot +
+      geom_smooth(method = "lm", color = "#f9766e") +
+      stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
+    }
+    else if(identical(c("2", "3"), input$scatter_plot)) {out <- base_plot +
+      stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
+      stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
+    }
+    else if(identical(c("1", "2", "3"), input$scatter_plot)) {out <- base_plot +
+      geom_smooth(method = "lm", color = "#f9766e") +
+      stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
+      stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
+    }
+    
+    print(input$scatter_plot)
+
+
+
+    
+ out
     
     
     
