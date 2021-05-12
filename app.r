@@ -25,18 +25,18 @@ ui <- fluidPage(
                                      "Higher level polynomial" = "3"),
                          selected = NULL),
       
-      selectInput("select",
-                  "State",
-                  choices = sort(unique(joined_cnty$state.x)),
-                  selected = "All"),
-
-    ),
-    
-    # selectInput("select",
-    #             "State",
-    #             choices = c("All"), append(sort(unique(joined_cnty$state.x))),
-    #             selected = "All"),
+    #   selectInput("select",
+    #               "State",
+    #               choices = sort(unique(joined_cnty$state.x)),
+    #               selected = "All"),
+    # 
     # ),
+    
+    selectInput("select",
+                "State",
+                choices = append(c("All"), sort(unique(joined_cnty$state.x))),
+                selected = "All"),
+    ),
     
     # Show a plot of the generated distribution
     mainPanel(tabsetPanel(type = "tabs", 
@@ -79,12 +79,16 @@ server <- function(input, output) {
   
   output$scatter_plot <- renderPlot({
     
-    react <- reactive({
-      joined_cnty %>%
-        filter(state.x == input$select)
-    })
+    data <- if ("All" == input$select) {
+      joined_cnty
+    } else {
+      joined_cnty %>% filter(state.x == input$select)
+    }
     
-    # states <- c("All states", levels(joined_cnty$state.x))
+    react <- reactive({
+      data
+    })
+  
     
     base_plot <- ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white)) +
       geom_point() 
@@ -118,11 +122,6 @@ server <- function(input, output) {
       stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
       stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
     }
-    
-    print(input$scatter_plot)
-
-
-
     
  out
     
