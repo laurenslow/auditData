@@ -83,14 +83,17 @@ ggplot(joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
 ```
 
 ```{r}
-plot_all <- ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
+joined <- joined %>% 
+  mutate(pred_white2 = factor(pred_white, labels = c("People of Color", "White")))
+
+plot_all <- ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white2)) +
   geom_point() + 
   geom_smooth(method = lm, color = "#f9766e") +
   stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
   stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff") +
   scale_x_continuous(labels = scales::dollar) +
   scale_y_continuous(labels = function(x) paste0(x, '%')) +
-  scale_color_discrete(labels = c("People of Color", "White", "Racial Data not Available")) +
+  # scale_color_discrete(levels = c("People of Color", "White", "Racial Data not Available")) +
   labs(x = "Median Income",
        y = "Percent of Tax Returns Audited",
        title = "",
@@ -111,31 +114,57 @@ cnty <- cnty %>%
 
 joined_cnty <- full_join(cnty, joined, by = "fips")
 
-pal <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$audit_rate)
+pal1 <- colorNumeric(palette = "YlOrRd", domain = joined_cnty$audit_rate)
 
+pal2 <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$median_income)
+
+pal3 <- colorFactor(palette = c("grey34","grey88"), domain = joined_cnty$pred_white2)
+```
+
+```{r}
 leaflet(joined_cnty) %>%
   addTiles() %>%
-  addPolygons(fillColor = ~pal(audit_rate), 
-              color = "#b2aeae", # you need to use hex colors
+  addPolygons(group = "Percentage of Taxes Audited",
+              fillColor = ~pal1(audit_rate), 
+              color = "#b2aeae", # use hex colors for line color
               fillOpacity = 0.7, 
               weight = 1, 
               smoothFactor = 0.2,
               popup = ~ paste(county, state.x)) %>%
-  addLegend(pal = pal, 
+  addPolygons(group = "Median Income",
+              fillColor = ~pal2(median_income),
+              color = "#b2aeae", # you need to use hex colors
+              fillOpacity = 0.7,
+              weight = 1,
+              smoothFactor = 0.2,
+              popup = ~ paste(county, state.x)) %>%
+    addPolygons(group = "Racial Identity",
+              fillColor = ~pal3(pred_white2),
+              color = "#b2aeae", # you need to use hex colors
+              fillOpacity = 0.7,
+              weight = 1,
+              smoothFactor = 0.2,
+              popup = ~ paste(county, state.x)) %>%
+  addLegend(pal = pal1, 
             values = joined_cnty$audit_rate, 
             position = "topright", 
             title = "Percent of Taxes Audited",
-            labFormat = labelFormat(suffix = "%")) 
+            labFormat = labelFormat(suffix = "%")) %>%
+  addLegend(pal = pal2, 
+            values = joined_cnty$median_income, 
+            position = "topright", 
+            title = "Median Income") %>%
+  addLayersControl(
+    overlayGroups = c("Percentage of Taxes Audited", "Median Income", "Racial Identity"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
 
-
-equation1=function(x){coef(fit)[2]*x+coef(fit)[1]}
-equation2=function(x){coef(fit)[2]*x+coef(fit)[1]+coef(fit)[3]}
-
-ggplot(data = joined, aes(x = median_income, y = audit_rate, color = pred_white)) +
-  geom_point()+
-  stat_function(fun=equation1,geom="line",color=scales::hue_pal()(2)[1])+
-  stat_function(fun=equation2,geom="line",color=scales::hue_pal()(2)[2])
 ```
+
+```{r}
+joined_cnty <- na.omit(joined_cnty)
+```
+
 
 
 

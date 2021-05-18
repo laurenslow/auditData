@@ -9,33 +9,39 @@ library(leaflet)
 library(stringr)
 library(shinythemes)
 
+# Define UI for application that draws a histogram
 ui <- fluidPage(
   
   # shiny app theme
   theme = shinytheme("flatly"),
   
-  # Application title
+  # app title
   titlePanel("Association Between Income, Race and Tax Audit Rates"),
   
-  sidebarLayout(
-    sidebarPanel(
-      checkboxGroupInput(inputId = "scatter_plot",
-                         label = "Select model type:",
-                         choices = c("Linear" = "1",
-                                     "Quadratic" = "2",
-                                     "Higher level polynomial" = "3"),
-                         selected = NULL),
-      
-      selectInput("select",
-                  "State",
-                  choices = append(c("All"), sort(unique(joined_cnty$state.x))),
-                  selected = "All"),
-    ),
-    
-    mainPanel(tabsetPanel(type = "tabs", 
-                          tabPanel("Graph", plotOutput("scatter_plot")),
-                          tabPanel("Map", leafletOutput("map_plot"))
-    )))
+  
+  tabsetPanel(type = "tabs", 
+                        tabPanel("Graph", 
+                                 sidebarLayout(
+                                   sidebarPanel(
+                                     checkboxGroupInput(inputId = "scatter_plot",
+                                                        label = "Select model type:",
+                                                        choices = c("Linear" = "1",
+                                                                    "Quadratic" = "2",
+                                                                    "Higher level polynomial" = "3"),
+                                                        selected = NULL),
+                                     
+                                     selectInput("select",
+                                                 "State",
+                                                 choices = append(c("All"), sort(unique(joined_cnty$state.x))),
+                                                 selected = "All"),
+                                   ),
+                                   mainPanel(plotOutput("scatter_plot")))),
+                                 tabPanel("Map",
+                                          fluidRow(
+                                            column(12, 
+                                                   leafletOutput("map_plot", height = 600))
+                                            ))
+                        )
   
 )
 
@@ -60,7 +66,8 @@ server <- function(input, output) {
   # wrangle data 
   joined <- joined %>%
     mutate(non_white = black + indian + asian + hawaiian + other + two, 
-           pred_white = as.logical(ifelse(white >= non_white, 1, 0)))
+           pred_white = as.logical(ifelse(white >= non_white, 1, 0)),
+           pred_white2 = factor(pred_white, labels = c("People of Color", "White")))
   
   cnty <- counties(state = FALSE, cb = TRUE, resolution = "20m")
   cnty <- cnty %>%
@@ -69,8 +76,14 @@ server <- function(input, output) {
              fips = as.numeric(fips))
 
   joined_cnty <- full_join(cnty, joined, by = "fips")
+  
+  joined_cnty <- na.omit(joined_cnty)
     
-  pal <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$audit_rate)
+  pal1 <- colorNumeric(palette = "YlOrRd", domain = joined_cnty$audit_rate)
+  
+  pal2 <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$median_income)
+  
+  pal3 <- colorFactor(palette = c("grey34","grey88"), domain = joined_cnty$pred_white2)
   
   
   # create output plots
@@ -89,11 +102,10 @@ server <- function(input, output) {
     })
   
     # draw baseline scatter plot 
-    base_plot <- ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white)) +
+    base_plot <- ggplot(data = react(), aes(x = median_income, y = audit_rate, color = pred_white2)) +
       geom_point() +
       scale_x_continuous(labels = scales::dollar) +
       scale_y_continuous(labels = function(x) paste0(x, '%')) +
-      scale_color_discrete(labels = c("People of Color", "White", "Racial Data not Available")) +
       labs(x = "Median Income",
            y = "Percent of Tax Returns Audited",
            title = "",
@@ -140,20 +152,50 @@ server <- function(input, output) {
   
   output$map_plot <- renderLeaflet({
     
-    # draw map in leaflet
     leaflet(joined_cnty) %>%
       addTiles() %>%
-      addPolygons(fillColor = ~pal(audit_rate), 
-                  color = "#b2aeae", # you need to use hex colors
+      addPolygons(group = "Percentage of Taxes Audited",
+                  fillColor = ~pal1(audit_rate), 
+                  color = "#b2aeae", # use hex colors for line color
                   fillOpacity = 0.7, 
                   weight = 1, 
                   smoothFactor = 0.2,
-                  popup = ~ paste(county, state.x)) %>%
-      addLegend(pal = pal, 
+                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+      addPolygons(group = "Median Income",
+                  fillColor = ~pal2(median_income),
+                  color = "#b2aeae", # you need to use hex colors
+                  fillOpacity = 0.7,
+                  weight = 1,
+                  smoothFactor = 0.2,
+                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+      addPolygons(group = "Racial Identity",
+                  fillColor = ~pal3(pred_white2),
+                  color = "#b2aeae", # you need to use hex colors
+                  fillOpacity = 0.7,
+                  weight = 1,
+                  smoothFactor = 0.2,
+                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+      addLayersControl(overlayGroups = c("Percentage of Taxes Audited", "Median Income", "Racial Identity"),
+                       options = layersControlOptions(collapsed = FALSE),
+                       position = "topright") %>%
+      htmlwidgets::onRender("function() {
+            $('.leaflet-control-layers-overlays').prepend('<label style=\"text-align:center\">Select Layers</label>');
+      }") %>% 
+      addLegend(pal = pal1, 
                 values = joined_cnty$audit_rate, 
                 position = "topright", 
                 title = "Percent of Taxes Audited",
-                labFormat = labelFormat(suffix = "%")) 
+                labFormat = labelFormat(suffix = "%")) %>%
+      addLegend(pal = pal2, 
+                values = joined_cnty$median_income, 
+                position = "topright", 
+                title = "Median Income") %>%
+      addLegend(pal = pal3, 
+                values = joined_cnty$pred_white2, 
+                position = "topright", 
+                title = "Racial Identity") %>%
+      hideGroup("Median Income") %>% 
+      hideGroup("Racial Identity") 
     
   })
 
