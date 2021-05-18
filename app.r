@@ -160,21 +160,21 @@ server <- function(input, output) {
                   fillOpacity = 0.7, 
                   weight = 1, 
                   smoothFactor = 0.2,
-                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+                  popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
       addPolygons(group = "Median Income",
                   fillColor = ~pal2(median_income),
                   color = "#b2aeae", # you need to use hex colors
                   fillOpacity = 0.7,
                   weight = 1,
                   smoothFactor = 0.2,
-                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+                  popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
       addPolygons(group = "Racial Identity",
                   fillColor = ~pal3(pred_white2),
                   color = "#b2aeae", # you need to use hex colors
                   fillOpacity = 0.7,
                   weight = 1,
                   smoothFactor = 0.2,
-                  popup = ~ paste(county, state.x, audit_rate, median_income)) %>%
+                  popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
       addLayersControl(overlayGroups = c("Percentage of Taxes Audited", "Median Income", "Racial Identity"),
                        options = layersControlOptions(collapsed = FALSE),
                        position = "topright") %>%

@@ -114,6 +114,8 @@ cnty <- cnty %>%
 
 joined_cnty <- full_join(cnty, joined, by = "fips")
 
+joined_cnty <- na.omit(joined_cnty)
+
 pal1 <- colorNumeric(palette = "YlOrRd", domain = joined_cnty$audit_rate)
 
 pal2 <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$median_income)
@@ -130,21 +132,21 @@ leaflet(joined_cnty) %>%
               fillOpacity = 0.7, 
               weight = 1, 
               smoothFactor = 0.2,
-              popup = ~ paste(county, state.x)) %>%
+              popup = ~ paste(county, ",", state.x, "<br>", audit_rate, "<br>", median_income)) %>%
   addPolygons(group = "Median Income",
               fillColor = ~pal2(median_income),
               color = "#b2aeae", # you need to use hex colors
               fillOpacity = 0.7,
               weight = 1,
               smoothFactor = 0.2,
-              popup = ~ paste(county, state.x)) %>%
+              popup = ~ paste(county, ",", state.x, "<br>", audit_rate, "<br>", median_income)) %>%
     addPolygons(group = "Racial Identity",
               fillColor = ~pal3(pred_white2),
               color = "#b2aeae", # you need to use hex colors
               fillOpacity = 0.7,
               weight = 1,
               smoothFactor = 0.2,
-              popup = ~ paste(county, state.x)) %>%
+              popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
   addLegend(pal = pal1, 
             values = joined_cnty$audit_rate, 
             position = "topright", 
@@ -159,10 +161,6 @@ leaflet(joined_cnty) %>%
     options = layersControlOptions(collapsed = FALSE)
   )
 
-```
-
-```{r}
-joined_cnty <- na.omit(joined_cnty)
 ```
 
 
