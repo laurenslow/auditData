@@ -1,0 +1,21 @@
+column,data_type,description
+fips,categorical,five digit county Federal Information Processing Standard code
+statefp,categorical,two digit state portion of fips code
+countyfp,categorical,three digit county portion of fips code
+state,categorical,state name
+county,categorical,county name
+n_returns,numeric,number of tax returns for tax years 2012-2015
+estimated_exams,numeric,estimated number of audits for tax years 2012-2015. calculated by Kim Bloomquist using audit coverage rates published in the annual IRS Data Book in combination with county tax return data on the IRS website.
+audit_rate,numeric,"estimated number of audits per 1,000 returns (tax years 2012-2015)"
+white,numeric,number of residents who racially identify as white 
+black,numeric,number of residents who racially identify as black
+indian,numeric,number of residents who racially identify as Indian
+asian,numeric,number of residents who racially identify as Asian 
+hawaiian,numeric,number of residents who racially identify as Hawaiian or Pacific Islander
+other,numeric,"number of residents who identify their race as ""other"""
+two,numeric,number of residents who identify as two of more races
+non_his,numeric,number of residents who ethnically identify as non-hispanic or latino
+hispanic,numeric,number of residents who ethnically identify as hispanic or latino
+median_income,numeric,median household income
+pred_white,binary,TRUE indicates that a county is predominantly white and FALSE indicates a county is predominantly people of color 
+pred_white2,binary,"""White"" indicates that a county is predominantly white and ""People of Color"" indicates a county is predominantly people of color "
