@@ -16,30 +16,35 @@ ui <- fluidPage(
   theme = shinytheme("flatly"),
   
   # app title
-  titlePanel("Association Between Income, Race and Tax Audit Rates"),
+  titlePanel("Association Between Tax Audit Rates, Race and Income"),
   
-  
+  # create tabs
   tabsetPanel(type = "tabs", 
-                        tabPanel("Graph", 
+                        # create scatterplot tab
+                        tabPanel("Scatterplot", 
                                  sidebarLayout(
                                    sidebarPanel(
+                                     #create model check boxes
                                      checkboxGroupInput(inputId = "scatter_plot",
                                                         label = "Select model type:",
                                                         choices = c("Linear" = "1",
                                                                     "Quadratic" = "2",
                                                                     "Higher level polynomial" = "3"),
                                                         selected = NULL),
-                                     
+                                     # create dropdown to select states
                                      selectInput("select",
                                                  "State",
+                                                 # create a droptdonw for arll stats and make states in alphabetical order
                                                  choices = append(c("All"), sort(unique(joined_cnty$state.x))),
                                                  selected = "All"),
                                    ),
+                                   # display scatterplot
                                    mainPanel(plotOutput("scatter_plot")))),
-                                 tabPanel("Map",
-                                          fluidRow(
-                                            column(12, 
-                                                   leafletOutput("map_plot", height = 600))
+                          # create map tab     
+                          tabPanel("Map",
+                                   fluidRow(
+                                     # control the height and width of map
+                                     column(12, leafletOutput("map_plot", height = 600))
                                             ))
                         )
   
@@ -74,11 +79,12 @@ server <- function(input, output) {
     unite(fips, c(STATEFP, COUNTYFP), sep = "", remove = FALSE) %>%
     mutate(fips = str_remove(fips, "^0+"),
              fips = as.numeric(fips))
-
+  # more wrangling
   joined_cnty <- full_join(cnty, joined, by = "fips")
   
   joined_cnty <- na.omit(joined_cnty)
-    
+  
+  # create color variables for leaflet
   pal1 <- colorNumeric(palette = "YlOrRd", domain = joined_cnty$audit_rate)
   
   pal2 <- colorNumeric(palette = "YlGnBu", domain = joined_cnty$median_income)
@@ -108,34 +114,41 @@ server <- function(input, output) {
       scale_y_continuous(labels = function(x) paste0(x, '%')) +
       labs(x = "Median Income",
            y = "Percent of Tax Returns Audited",
-           title = "",
+           title = "Association Between Tax Audit Rates, Race and Income Across US Counties",
            subtitle = "Each point represents one US county", 
            color = "Predominant Racial Identity")
 
     # conditionals to add regression lines
     if(is.null(input$scatter_plot)) {out <- base_plot;
     }
+    # add linear regression only 
     else if(identical(c("1"), input$scatter_plot)) {out <- base_plot + 
       geom_smooth(method = lm, color = "#f9766e");
     }
+    # add quadratic regression only 
     else if(identical(c("2"), input$scatter_plot)) {out <- base_plot + 
       stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");
     }
+    # add higher level polynomial regression only 
     else if(identical(c("3"), input$scatter_plot)) {out <- base_plot + 
       stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
     }
+    # add linear and quad regression 
     else if(identical(c("1", "2"), input$scatter_plot)) {out <- base_plot +
             geom_smooth(method = lm, color = "#f9766e") +
             stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00");
     }
+    # add linear and higher level polynomial regression 
     else if(identical(c("1", "3"), input$scatter_plot)) {out <- base_plot +
       geom_smooth(method = lm, color = "#f9766e") +
       stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
     }
+    # add quad and higher level polynomial regression 
     else if(identical(c("2", "3"), input$scatter_plot)) {out <- base_plot +
       stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
       stat_smooth(method = lm, formula = y ~ poly(x, 3, raw = TRUE), color = "#c77cff");
     }
+    # add all three regressions
     else if(identical(c("1", "2", "3"), input$scatter_plot)) {out <- base_plot +
       geom_smooth(method = lm, color = "#f9766e") +
       stat_smooth(method = lm, formula = y ~ poly(x, 2, raw = TRUE), color = "#7caf00") +
@@ -144,16 +157,15 @@ server <- function(input, output) {
     
     # display out (baseline scatter) plot
     out
-    
-    
-    
   })
   
   
   output$map_plot <- renderLeaflet({
     
+    # create leaflet 
     leaflet(joined_cnty) %>%
       addTiles() %>%
+      # color layer for tax audit data
       addPolygons(group = "Percentage of Taxes Audited",
                   fillColor = ~pal1(audit_rate), 
                   color = "#b2aeae", # use hex colors for line color
@@ -161,6 +173,7 @@ server <- function(input, output) {
                   weight = 1, 
                   smoothFactor = 0.2,
                   popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
+      # color layer for income data
       addPolygons(group = "Median Income",
                   fillColor = ~pal2(median_income),
                   color = "#b2aeae", # you need to use hex colors
@@ -168,6 +181,7 @@ server <- function(input, output) {
                   weight = 1,
                   smoothFactor = 0.2,
                   popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
+      # color for race data
       addPolygons(group = "Racial Identity",
                   fillColor = ~pal3(pred_white2),
                   color = "#b2aeae", # you need to use hex colors
@@ -175,21 +189,25 @@ server <- function(input, output) {
                   weight = 1,
                   smoothFactor = 0.2,
                   popup = ~ paste(county, ",", state.x, "<br> Audit Rate:", audit_rate, "<br> Median Income: $", median_income)) %>%
+      # add checkboxes for each layer
       addLayersControl(overlayGroups = c("Percentage of Taxes Audited", "Median Income", "Racial Identity"),
                        options = layersControlOptions(collapsed = FALSE),
                        position = "topright") %>%
       htmlwidgets::onRender("function() {
             $('.leaflet-control-layers-overlays').prepend('<label style=\"text-align:center\">Select Layers</label>');
       }") %>% 
+      # legend for tax audit layer
       addLegend(pal = pal1, 
                 values = joined_cnty$audit_rate, 
                 position = "topright", 
                 title = "Percent of Taxes Audited",
                 labFormat = labelFormat(suffix = "%")) %>%
+      # legend for income layer
       addLegend(pal = pal2, 
                 values = joined_cnty$median_income, 
                 position = "topright", 
                 title = "Median Income") %>%
+      # legend for race layer
       addLegend(pal = pal3, 
                 values = joined_cnty$pred_white2, 
                 position = "topright", 
